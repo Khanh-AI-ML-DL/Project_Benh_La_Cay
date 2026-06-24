@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PlantDoc AI — Dự đoán bệnh cây trồng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-50: #EAF3DE; --green-100: #C0DD97; --green-200: #97C459;
+    --green-400: #639922; --green-600: #3B6D11; --green-800: #27500A;
+    --amber-50: #FAEEDA; --amber-200: #EF9F27; --amber-400: #BA7517; --amber-600: #854F0B;
+    --red-50: #FCEBEB; --red-200: #F09595; --red-400: #E24B4A; --red-600: #A32D2D;
+    --coral-50: #FAECE7; --coral-200: #F0997B; --coral-400: #D85A30;
+    --teal-50: #E1F5EE; --teal-200: #5DCAA5; --teal-400: #1D9E75; --teal-600: #0F6E56;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-200: #B4B2A9;
+    --gray-400: #888780; --gray-800: #444441;
+    --bg-primary: #ffffff; --bg-secondary: #f5f5f3; --bg-tertiary: #f0efe8;
+    --text-primary: #1a1a18; --text-secondary: #6b6b67;
+    --border: rgba(0,0,0,0.12); --border-hover: rgba(0,0,0,0.25);
+    --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c; --bg-secondary: #252523; --bg-tertiary: #161614;
+      --text-primary: #f0efe8; --text-secondary: #8a8a85;
+      --border: rgba(255,255,255,0.1); --border-hover: rgba(255,255,255,0.2);
+      --green-50: #1a2a0d; --green-100: #2a4015; --teal-50: #0d2620;
+      --amber-50: #2a1f0a; --red-50: #2a0f0f; --coral-50: #2a1208;
+    }
+  }
+
+  html { font-size: 16px; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+
+  /* ── App shell ── */
+  .app { width: 100%; max-width: 430px; background: var(--bg-tertiary); display: flex; flex-direction: column; min-height: 100vh; position: relative; }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: var(--bg-primary); border-bottom: 0.5px solid var(--border);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; color: var(--green-600); display: flex; align-items: center; gap: 8px; }
+  .topbar-logo .dot { width: 10px; height: 10px; background: var(--green-200); border-radius: 50%; display: inline-block; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .pill-btn {
+    font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 0.5px solid var(--border);
+    color: var(--text-secondary); cursor: pointer; background: var(--bg-primary);
+    display: flex; align-items: center; gap: 5px; transition: background 0.15s, color 0.15s;
+  }
+  .pill-btn:hover { background: var(--green-50); color: var(--green-600); border-color: var(--green-100); }
+
+  /* ── Page management ── */
+  .page { display: none; }
+  .page.active { display: block; }
+  .scroll-body { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+  /* ── Hero grid ── */
+  .hero { padding: 18px 16px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card {
+    background: var(--bg-primary); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 1.5px dashed var(--green-100); border-radius: 10px; padding: 24px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; background: var(--green-50); transition: all 0.2s;
+  }
+  .upload-zone:hover { border-color: var(--green-200); }
+  .upload-zone i { font-size: 28px; color: var(--green-400); }
+  .upload-label { font-family: 'Fraunces', serif; font-size: 13px; color: var(--green-800); text-align: center; }
+  .upload-sub { font-size: 11px; color: var(--text-secondary); text-align: center; }
+  #file-input { display: none; }
+
+  .camera-btn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    border: 0.5px solid var(--border); border-radius: 8px; padding: 9px;
+    font-size: 13px; color: var(--text-secondary); cursor: pointer;
+    background: var(--bg-primary); transition: background 0.15s;
+  }
+  .camera-btn:hover { background: var(--bg-secondary); }
+  .camera-btn i { font-size: 17px; }
+
+  /* ── Plant preview ── */
+  .plant-preview {
+    border-radius: 10px; overflow: hidden; height: 130px;
+    background: linear-gradient(135deg,#d4edba 0%,#b8dfa0 50%,#9cd08a 100%);
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .plant-preview-emoji { font-size: 52px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.1)); }
+  .scan-line {
+    position: absolute; width: 80%; height: 2px; background: var(--green-400);
+    opacity: 0.7; border-radius: 2px; animation: scanmove 2s ease-in-out infinite;
+  }
+  @keyframes scanmove {
+    0% { transform: translateY(-45px); opacity: 0; } 30% { opacity: 0.7; }
+    70% { opacity: 0.7; } 100% { transform: translateY(45px); opacity: 0; }
+  }
+
+  /* ── Result card ── */
+  .result-header { display: flex; align-items: flex-start; justify-content: space-between; }
+  .result-title { font-family: 'Fraunces', serif; font-size: 14px; color: var(--text-primary); }
+  .confidence-badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; background: var(--red-50); color: var(--red-600); font-weight: 500; white-space: nowrap; }
+  .disease-name { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 500; color: var(--red-400); line-height: 1.2; }
+  .disease-sci { font-size: 11px; color: var(--text-secondary); font-style: italic; margin-top: 3px; }
+
+  /* healthy state colors */
+  .result-healthy .disease-name { color: var(--teal-400); }
+  .result-healthy .confidence-badge { background: var(--teal-50); color: var(--teal-600); }
+  .result-healthy .severity-block { background: var(--teal-50); }
+  .result-healthy .severity-icon { color: var(--teal-400); }
+  .result-healthy .severity-text { color: var(--teal-600); }
+  .result-healthy .conf-fill { background: var(--teal-400); }
+  .result-healthy .conf-bar-label span:last-child { color: var(--teal-400); }
+
+  .severity-block { background: var(--amber-50); border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 10px; }
+  .severity-icon { font-size: 20px; color: var(--amber-400); flex-shrink: 0; }
+  .severity-text { font-size: 12px; color: var(--amber-600); font-weight: 500; }
+  .severity-sub { font-size: 11px; color: var(--text-secondary); }
+  .conf-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; }
+  .conf-bar-label span:last-child { color: var(--red-400); font-weight: 500; }
+  .conf-bar { height: 5px; border-radius: 5px; background: var(--gray-100); overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 5px; background: var(--red-400); width: 0; transition: width 1.4s cubic-bezier(.22,1,.36,1); }
+
+  /* ── Section ── */
+  .section { padding: 18px 16px 0; }
+  .section-title { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500; color: var(--text-primary); margin-bottom: 11px; }
+
+  /* ── Symptoms ── */
+  .symptoms-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
+  .symptom-card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 11px; display: flex; flex-direction: column; gap: 5px; }
+  .symptom-card i { font-size: 19px; }
+  .symptom-card.red i { color: var(--red-400); }
+  .symptom-card.amber i { color: var(--amber-400); }
+  .symptom-card.teal i { color: var(--teal-400); }
+  .symptom-label { font-size: 11px; color: var(--text-primary); font-weight: 500; }
+  .symptom-val { font-size: 10px; color: var(--text-secondary); }
+
+  /* ── Treatments ── */
+  .treatment-tabs { display: flex; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border); cursor: pointer; color: var(--text-secondary); background: var(--bg-primary); transition: all 0.15s; }
+  .tab.active { background: var(--green-600); color: #fff; border-color: var(--green-600); }
+  .tab:hover:not(.active) { background: var(--green-50); border-color: var(--green-100); color: var(--green-600); }
+  .treatment-list { display: flex; flex-direction: column; gap: 8px; }
+  .treatment-item { display: flex; align-items: flex-start; gap: 10px; background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: 8px; padding: 11px; }
+  .t-num { width: 21px; height: 21px; border-radius: 50%; background: var(--teal-50); color: var(--teal-600); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .t-text { font-size: 12px; color: var(--text-primary); line-height: 1.55; }
+  .t-tag { font-size: 10px; background: var(--teal-50); color: var(--teal-600); border-radius: 4px; padding: 2px 7px; margin-top: 5px; display: inline-block; }
+  .treatment-panel { display: none; }
+  .treatment-panel.active { display: block; }
+
+  /* ── Similar diseases ── */
+  .similar-row { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .similar-row::-webkit-scrollbar { display: none; }
+  .similar-chip { display: flex; align-items: center; gap: 8px; background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: 8px; padding: 9px 13px; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.15s; }
+  .similar-chip:hover { background: var(--green-50); border-color: var(--green-100); }
+  .s-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .s-name { font-size: 12px; color: var(--text-primary); font-weight: 500; }
+  .s-prob { font-size: 10px; color: var(--text-secondary); }
+
+  /* ── CTA row ── */
+  .cta-row { display: flex; gap: 10px; padding: 18px 16px 0; }
+  .cta-btn { flex: 1; padding: 11px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 7px; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .cta-btn.primary { background: var(--green-600); color: #fff; border-color: var(--green-600); }
+  .cta-btn.primary:hover { background: var(--green-800); }
+  .cta-btn.secondary { background: var(--bg-primary); color: var(--text-primary); }
+  .cta-btn.secondary:hover { background: var(--bg-secondary); }
+
+  /* ── Info strip ── */
+  .info-strip { margin: 16px 16px 0; background: var(--teal-50); border: 0.5px solid var(--teal-200); border-radius: var(--radius-md); padding: 11px 13px; display: flex; align-items: center; gap: 10px; }
+  .info-strip i { font-size: 18px; color: var(--teal-400); flex-shrink: 0; }
+  .info-strip p { font-size: 12px; color: var(--teal-600); line-height: 1.45; }
+
+  /* ── Loading overlay on result card ── */
+  .card-loading { opacity: 0.5; pointer-events: none; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--green-100); border-top-color: var(--green-600); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Bottom nav ── */
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--bg-primary); border-top: 0.5px solid var(--border); display: flex; justify-content: space-around; padding: 11px 0 14px; z-index: 100; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; color: var(--text-secondary); font-size: 10px; transition: color 0.15s; padding: 0 8px; }
+  .nav-item.active { color: var(--green-600); }
+  .nav-item:hover:not(.active) { color: var(--text-primary); }
+  .nav-item i { font-size: 22px; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-10px); background: var(--gray-800); color: #fff; font-size: 13px; padding: 10px 18px; border-radius: 20px; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 999; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ══════════════════════════════════════
+     HISTORY PAGE
+  ══════════════════════════════════════ */
+  #page-history { padding: 16px; }
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .history-header h2 { font-family: 'Fraunces', serif; font-size: 17px; }
+  .clear-btn { font-size: 12px; color: var(--red-400); border: 0.5px solid var(--red-200); background: var(--red-50); padding: 5px 12px; border-radius: 20px; cursor: pointer; }
+  .clear-btn:hover { background: var(--red-200); color: #fff; }
+  .history-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 14px; }
+  .history-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: var(--gray-200); }
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-item { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 12px; display: flex; gap: 12px; align-items: center; cursor: pointer; transition: background 0.15s; }
+  .history-item:hover { background: var(--green-50); }
+  .history-thumb { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg-secondary); }
+  .history-thumb-placeholder { width: 52px; height: 52px; border-radius: 8px; background: var(--green-50); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .history-info { flex: 1; min-width: 0; }
+  .history-name { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-meta { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+  .history-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--red-50); color: var(--red-600); font-weight: 500; margin-top: 5px; display: inline-block; }
+  .history-badge.safe { background: var(--teal-50); color: var(--teal-600); }
+
+  /* ══════════════════════════════════════
+     CHAT PAGE
+  ══════════════════════════════════════ */
+  #page-chat { display: flex; flex-direction: column; height: calc(100vh - 56px - 57px); }
+  .chat-header { padding: 14px 16px; background: var(--bg-primary); border-bottom: 0.5px solid var(--border); }
+  .chat-header h2 { font-family: 'Fraunces', serif; font-size: 16px; }
+  .chat-disease-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--green-50); border: 0.5px solid var(--green-100); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--green-600); margin-top: 5px; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-bubble { max-width: 85%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+  .chat-bubble.bot { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: 14px 14px 14px 4px; color: var(--text-primary); align-self: flex-start; }
+  .chat-bubble.user { background: var(--green-600); color: #fff; border-radius: 14px 14px 4px 14px; align-self: flex-end; }
+  .chat-bubble.typing { color: var(--text-secondary); font-style: italic; }
+  .chat-quick-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+  .quick-btn { font-size: 12px; padding: 5px 11px; border: 0.5px solid var(--green-100); border-radius: 20px; background: var(--green-50); color: var(--green-600); cursor: pointer; white-space: nowrap; }
+  .quick-btn:hover { background: var(--green-100); }
+  .chat-input-row { display: flex; gap: 8px; padding: 10px 16px 14px; background: var(--bg-primary); border-top: 0.5px solid var(--border); }
+  .chat-input { flex: 1; border: 0.5px solid var(--border); border-radius: 20px; padding: 9px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--bg-secondary); color: var(--text-primary); outline: none; }
+  .chat-input:focus { border-color: var(--green-200); }
+  .chat-send { width: 36px; height: 36px; border-radius: 50%; background: var(--green-600); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+  .chat-send:hover { background: var(--green-800); }
+  .chat-no-disease { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 13px; }
+  .chat-no-disease i { font-size: 36px; display: block; margin-bottom: 10px; color: var(--gray-200); }
+
+  /* ══════════════════════════════════════
+     ACCOUNT PAGE
+  ══════════════════════════════════════ */
+  #page-account { padding: 20px 16px; }
+  .profile-card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-xl); padding: 24px; text-align: center; margin-bottom: 16px; }
+  .avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--green-100); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--green-600); }
+  .user-name { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; }
+  .user-info { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .menu-list { display: flex; flex-direction: column; gap: 9px; }
+  .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; background: var(--bg-primary); border-radius: var(--radius-md); border: 0.5px solid var(--border); cursor: pointer; transition: background 0.15s; }
+  .menu-item:hover { background: var(--bg-secondary); }
+  .menu-item-left { display: flex; align-items: center; gap: 11px; }
+  .menu-icon { width: 33px; height: 33px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .menu-icon.green { background: var(--green-50); color: var(--green-600); }
+  .menu-icon.amber { background: var(--amber-50); color: var(--amber-400); }
+  .menu-icon.red { background: var(--red-50); color: var(--red-400); }
+  .menu-icon.teal { background: var(--teal-50); color: var(--teal-400); }
+  .menu-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .menu-sub { font-size: 11px; color: var(--text-secondary); }
+  .stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-box { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 13px; text-align: center; }
+  .stat-num { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 500; color: var(--green-600); }
+  .stat-label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div class="topbar-logo"><span class="dot"></span>PlantDoc AI</div>
+    <div class="topbar-actions">
+      <button class="pill-btn" onclick="navTo('history')">
+        <i class="ti ti-history"></i> Lịch sử
+      </button>
+      <button class="pill-btn" onclick="showToast('Không có thông báo mới')">
+        <i class="ti ti-bell"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ PAGE: PHÂN TÍCH ═══════════════════════ -->
+  <div class="scroll-body page active" id="page-scan">
+
+    <div class="hero">
+      <!-- Upload card -->
+      <div class="card">
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+          <i class="ti ti-photo-scan"></i>
+          <span class="upload-label">Tải ảnh lá cây lên</span>
+          <span class="upload-sub">JPG, PNG — tối đa 10MB</span>
+        </div>
+        <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(this)" />
+        <div class="camera-btn" onclick="showToast('Tính năng camera đang phát triển')">
+          <i class="ti ti-camera"></i><span>Chụp ảnh trực tiếp</span>
+        </div>
+        <div class="plant-preview" id="preview-box">
+          <span class="plant-preview-emoji" id="preview-content">🌿</span>
+          <div class="scan-line" id="scan-line"></div>
+        </div>
+      </div>
+
+      <!-- Result card -->
+      <div class="card" id="result-card">
+        <div class="result-header">
+          <span class="result-title">Kết quả phân tích</span>
+          <span class="confidence-badge" id="badge-conf">—</span>
+        </div>
+        <div>
+          <div class="disease-name" id="r-name">Chưa phân tích</div>
+          <div class="disease-sci" id="r-sci">Tải ảnh để bắt đầu</div>
+        </div>
+        <div class="severity-block" id="severity-block">
+          <i class="ti ti-leaf severity-icon" id="severity-icon"></i>
+          <div>
+            <div class="severity-text" id="r-severity">—</div>
+            <div class="severity-sub" id="r-days">—</div>
+          </div>
+        </div>
+        <div>
+          <div class="conf-bar-label">
+            <span>Độ chính xác AI</span>
+            <span id="conf-pct">—</span>
+          </div>
+          <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info strip -->
+    <div class="info-strip">
+      <i class="ti ti-info-circle"></i>
+      <p>Kết quả chỉ mang tính tham khảo. Hãy tham vấn chuyên gia nông nghiệp để xác nhận chẩn đoán.</p>
+    </div>
+
+    <!-- Symptoms -->
+    <div class="section" id="section-symptoms" style="display:none">
+      <div class="section-title">Triệu chứng phát hiện</div>
+      <div class="symptoms-grid" id="symptoms-grid"></div>
+    </div>
+
+    <!-- Treatments -->
+    <div class="section" id="section-treatments" style="display:none">
+      <div class="section-title">Phương pháp xử lý</div>
+      <div class="treatment-tabs">
+        <div class="tab active" onclick="switchTab(this,'chemical')">💊 Hóa học</div>
+        <div class="tab" onclick="switchTab(this,'organic')">🌿 Hữu cơ</div>
+        <div class="tab" onclick="switchTab(this,'prevent')">🛡️ Phòng ngừa</div>
+      </div>
+      <div id="panel-chemical" class="treatment-panel active"><div class="treatment-list" id="list-chemical"></div></div>
+      <div id="panel-organic"  class="treatment-panel"><div class="treatment-list" id="list-organic"></div></div>
+      <div id="panel-prevent"  class="treatment-panel"><div class="treatment-list" id="list-prevent"></div></div>
+    </div>
+
+    <!-- Similar diseases -->
+    <div class="section" id="section-similar" style="display:none">
+      <div class="section-title">Bệnh tương tự</div>
+      <div class="similar-row" id="similar-row"></div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-row" id="cta-row" style="display:none">
+      <button class="cta-btn primary" onclick="saveResult()">
+        <i class="ti ti-device-floppy"></i> Lưu kết quả
+      </button>
+      <button class="cta-btn secondary" onclick="openChat()">
+        <i class="ti ti-message-circle"></i> Tư vấn thêm
+      </button>
+    </div>
+
+    <div style="height:20px"></div>
+  </div><!-- /page-scan -->
+
+  <!-- ═══════════════════════ PAGE: LỊCH SỬ ═══════════════════════ -->
+  <div class="scroll-body page" id="page-history">
+    <div id="page-history-inner">
+      <div class="history-header">
+        <h2>Lịch sử phân tích</h2>
+        <button class="clear-btn" onclick="clearHistory()"><i class="ti ti-trash"></i> Xóa tất cả</button>
+      </div>
+      <div id="history-content"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ PAGE: TƯ VẤN ═══════════════════════ -->
+  <div class="page" id="page-chat" style="display:none; flex-direction:column; height:calc(100vh - 56px - 57px)">
+    <div class="chat-header">
+      <h2>Tư vấn AI</h2>
+      <div class="chat-disease-pill" id="chat-disease-pill">
+        <i class="ti ti-plant-2"></i> <span id="chat-disease-name">—</span>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-quick-btns" id="chat-quick-btns">
+      <button class="quick-btn" onclick="sendQuick('Nên dùng thuốc gì?')">💊 Thuốc</button>
+      <button class="quick-btn" onclick="sendQuick('Biện pháp hữu cơ nào?')">🌿 Hữu cơ</button>
+      <button class="quick-btn" onclick="sendQuick('Cách phòng ngừa?')">🛡️ Phòng ngừa</button>
+      <button class="quick-btn" onclick="sendQuick('Mức độ nguy hiểm?')">⚠️ Mức độ</button>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chat-input" type="text" placeholder="Hỏi về bệnh này..." onkeydown="if(event.key==='Enter') sendChat()" />
+      <button class="chat-send" onclick="sendChat()"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ PAGE: TÀI KHOẢN ═══════════════════════ -->
+  <div class="scroll-body page" id="page-account">
+    <div class="profile-card">
+      <div class="avatar"><i class="ti ti-user"></i></div>
+      <div class="user-name">Người dùng</div>
+      <div class="user-info">Thành viên PlantDoc AI</div>
+    </div>
+    <div class="stat-row" id="stat-row">
+      <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Lần phân tích</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-disease">0</div><div class="stat-label">Phát hiện bệnh</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-healthy">0</div><div class="stat-label">Cây khỏe</div></div>
+    </div>
+    <div class="menu-list">
+      <div class="menu-item" onclick="navTo('history')">
+        <div class="menu-item-left">
+          <div class="menu-icon green"><i class="ti ti-history"></i></div>
+          <div><div class="menu-label">Lịch sử phân tích</div><div class="menu-sub">Xem các lần phân tích trước</div></div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text-secondary)"></i>
+      </div>
+      <div class="menu-item" onclick="showToast('Tính năng đang phát triển')">
+        <div class="menu-item-left">
+          <div class="menu-icon teal"><i class="ti ti-bell"></i></div>
+          <div><div class="menu-label">Thông báo</div><div class="menu-sub">Cảnh báo bệnh theo mùa</div></div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text-secondary)"></i>
+      </div>
+      <div class="menu-item" onclick="showToast('Tính năng đang phát triển')">
+        <div class="menu-item-left">
+          <div class="menu-icon amber"><i class="ti ti-settings"></i></div>
+          <div><div class="menu-label">Cài đặt</div><div class="menu-sub">Tùy chỉnh ứng dụng</div></div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text-secondary)"></i>
+      </div>
+      <div class="menu-item" onclick="showToast('Tính năng đang phát triển')">
+        <div class="menu-item-left">
+          <div class="menu-icon red"><i class="ti ti-help"></i></div>
+          <div><div class="menu-label">Trợ giúp & Phản hồi</div><div class="menu-sub">Gửi góp ý cho nhóm phát triển</div></div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text-secondary)"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bottom nav ── -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-scan" onclick="navTo('scan')">
+      <i class="ti ti-scan"></i><span>Phân tích</span>
+    </div>
+    <div class="nav-item" id="nav-history" onclick="navTo('history')">
+      <i class="ti ti-history"></i><span>Lịch sử</span>
+    </div>
+    <div class="nav-item" id="nav-chat" onclick="navTo('chat')">
+      <i class="ti ti-message-circle"></i><span>Tư vấn</span>
+    </div>
+    <div class="nav-item" id="nav-account" onclick="navTo('account')">
+      <i class="ti ti-user"></i><span>Tài khoản</span>
+    </div>
+  </nav>
+
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let currentResult = null;  // last prediction result
+let currentPage   = 'scan';
+
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════ */
+function navTo(page) {
+  const pages = ['scan', 'history', 'chat', 'account'];
+  pages.forEach(p => {
+    const el = document.getElementById('page-' + p);
+    const nav = document.getElementById('nav-' + p);
+    if (!el || !nav) return;
+    if (p === page) {
+      el.classList.add('active');
+      el.style.display = '';
+      nav.classList.add('active');
+    } else {
+      el.classList.remove('active');
+      if (p === 'chat') el.style.display = 'none';
+      nav.classList.remove('active');
+    }
+  });
+  currentPage = page;
+  if (page === 'history') loadHistory();
+  if (page === 'account') loadStats();
+  if (page === 'chat' && !currentResult) renderNoDiseaseChat();
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TAB SWITCHING (treatments)
+═══════════════════════════════════════════════════════ */
+function switchTab(el, panel) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.treatment-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + panel).classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════
+   FILE UPLOAD + PREDICT
+═══════════════════════════════════════════════════════ */
+function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Immediate preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const box = document.getElementById('preview-box');
+    box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+                     <div class="scan-line"></div>`;
+  };
+  reader.readAsDataURL(file);
+
+  // Dim result card
+  document.getElementById('result-card').classList.add('card-loading');
+  document.getElementById('r-name').textContent = 'Đang phân tích…';
+  document.getElementById('r-sci').textContent = '';
+  showToast('🔍 Đang phân tích ảnh…');
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  fetch('/predict', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { showToast('Lỗi: ' + data.error); return; }
+      renderResult(data);
+    })
+    .catch(() => showToast('❌ Không thể kết nối máy chủ'));
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER RESULT
+═══════════════════════════════════════════════════════ */
+function renderResult(data) {
+  currentResult = data;
+
+  const card = document.getElementById('result-card');
+  card.classList.remove('card-loading');
+
+  // Healthy vs disease styling
+  if (data.class_id === 'Healthy') {
+    card.classList.add('result-healthy');
+  } else {
+    card.classList.remove('result-healthy');
+  }
+
+  document.getElementById('r-name').textContent     = data.class_name;
+  document.getElementById('r-sci').textContent      = data.sci_name;
+  document.getElementById('r-severity').textContent = 'Mức độ: ' + data.severity;
+  document.getElementById('r-days').textContent     = data.severity_days;
+  document.getElementById('badge-conf').textContent = data.confidence + '% tin cậy';
+  document.getElementById('conf-pct').textContent   = data.confidence + '%';
+
+  // Animate bar
+  const fill = document.getElementById('conf-fill');
+  fill.style.width = '0';
+  setTimeout(() => { fill.style.width = data.confidence + '%'; }, 50);
+
+  // Severity icon
+  const icon = document.getElementById('severity-icon');
+  icon.className = data.severity === 'An toàn'
+    ? 'ti ti-circle-check severity-icon'
+    : 'ti ti-alert-triangle severity-icon';
+
+  // Symptoms
+  const grid = document.getElementById('symptoms-grid');
+  grid.innerHTML = data.symptoms.map(s => `
+    <div class="symptom-card ${s.color}">
+      <i class="${s.icon || 'ti ti-circle-dot'}"></i>
+      <span class="symptom-label">${s.label}</span>
+      <span class="symptom-val">${s.val}</span>
+    </div>`).join('');
+  document.getElementById('section-symptoms').style.display = '';
+
+  // Treatments
+  ['chemical','organic','prevent'].forEach(type => {
+    const list = document.getElementById('list-' + type);
+    const items = data.treatments[type] || [];
+    list.innerHTML = items.map((item, i) => `
+      <div class="treatment-item">
+        <div class="t-num">${i+1}</div>
+        <div>
+          <div class="t-text">${item.text}</div>
+          <span class="t-tag">${item.tag}</span>
+        </div>
+      </div>`).join('');
+  });
+  document.getElementById('section-treatments').style.display = '';
+
+  // Reset tabs to first
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  document.querySelectorAll('.treatment-panel').forEach((p,i) => p.classList.toggle('active', i===0));
+
+  // Similar diseases
+  if (data.similar && data.similar.length) {
+    document.getElementById('similar-row').innerHTML = data.similar.map(s => `
+      <div class="similar-chip">
+        <span class="s-dot" style="background:${s.color}"></span>
+        <div>
+          <div class="s-name">${s.name}</div>
+          <div class="s-prob">${s.prob}% khả năng</div>
+        </div>
+      </div>`).join('');
+    document.getElementById('section-similar').style.display = '';
+  }
+
+  // CTA
+  document.getElementById('cta-row').style.display = '';
+
+  showToast('✓ Phân tích hoàn tất!');
+
+  // Update chat context pill
+  document.getElementById('chat-disease-name').textContent = data.class_name;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SAVE RESULT (manual)
+═══════════════════════════════════════════════════════ */
+function saveResult() {
+  if (!currentResult) { showToast('Chưa có kết quả để lưu'); return; }
+  showToast('✅ Kết quả đã được lưu tự động!');
+}
+
+/* ═══════════════════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════════════════ */
+function loadHistory() {
+  const container = document.getElementById('history-content');
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary)"><span class="spinner"></span></div>';
+  fetch('/history')
+    .then(r => r.json())
+    .then(list => renderHistory(list))
+    .catch(() => { container.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text-secondary)">Không thể tải lịch sử</p>'; });
+}
+
+function renderHistory(list) {
+  const container = document.getElementById('history-content');
+  if (!list.length) {
+    container.innerHTML = `<div class="history-empty"><i class="ti ti-history"></i>Chưa có lần phân tích nào.<br>Tải ảnh lên để bắt đầu!</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="history-list">${list.map(item => `
+    <div class="history-item">
+      ${item.image_url
+        ? `<img class="history-thumb" src="${item.image_url}" onerror="this.style.display='none'">`
+        : `<div class="history-thumb-placeholder">🌿</div>`}
+      <div class="history-info">
+        <div class="history-name">${item.class_name}</div>
+        <div class="history-meta">${item.timestamp} · ${item.confidence}% tin cậy</div>
+        <span class="history-badge ${item.severity==='An toàn'?'safe':''}">${item.severity}</span>
+      </div>
+      <i class="ti ti-chevron-right" style="color:var(--text-secondary);font-size:18px"></i>
+    </div>`).join('')}
+  </div>`;
+}
+
+function clearHistory() {
+  if (!confirm('Xóa toàn bộ lịch sử phân tích?')) return;
+  fetch('/history/clear', { method:'POST' })
+    .then(() => { loadHistory(); showToast('🗑️ Đã xóa lịch sử'); });
+}
+
+/* ═══════════════════════════════════════════════════════
+   ACCOUNT STATS
+═══════════════════════════════════════════════════════ */
+function loadStats() {
+  fetch('/history')
+    .then(r => r.json())
+    .then(list => {
+      document.getElementById('stat-total').textContent   = list.length;
+      document.getElementById('stat-disease').textContent = list.filter(i => i.severity !== 'An toàn').length;
+      document.getElementById('stat-healthy').textContent = list.filter(i => i.severity === 'An toàn').length;
+    })
+    .catch(() => {});
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHAT
+═══════════════════════════════════════════════════════ */
+function openChat() {
+  navTo('chat');
+  if (currentResult) {
+    const msgs = document.getElementById('chat-messages');
+    if (!msgs.children.length) {
+      appendBotMsg(`Xin chào! Tôi đã phân tích và phát hiện **${currentResult.class_name}**.\n\nBạn muốn biết thêm gì? Hãy hỏi tôi về thuốc, biện pháp hữu cơ, phòng ngừa hoặc triệu chứng.`);
+    }
+  }
+}
+
+function renderNoDiseaseChat() {
+  const msgs = document.getElementById('chat-messages');
+  if (!msgs.children.length) {
+    msgs.innerHTML = `<div class="chat-no-disease"><i class="ti ti-photo-scan"></i>Chưa có kết quả phân tích.<br>Vui lòng tải ảnh lên trước.</div>`;
+  }
+}
+
+function appendBotMsg(text) {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'chat-bubble bot';
+  el.textContent = text.replace(/\*\*/g,'');  // strip markdown bold for plain display
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendUserMsg(text) {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'chat-bubble user';
+  el.textContent = text;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function sendQuick(text) {
+  if (!currentResult) { showToast('Tải ảnh lên trước để tư vấn'); return; }
+  document.getElementById('chat-input').value = text;
+  sendChat();
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const question = input.value.trim();
+  if (!question) return;
+  if (!currentResult) { showToast('Tải ảnh lên trước để tư vấn'); return; }
+
+  appendUserMsg(question);
+  input.value = '';
+
+  // typing indicator
+  const msgs = document.getElementById('chat-messages');
+  const typing = document.createElement('div');
+  typing.className = 'chat-bubble bot typing';
+  typing.textContent = 'Đang suy nghĩ…';
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  fetch('/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ disease: currentResult.class_id, question })
+  })
+  .then(r => r.json())
+  .then(data => {
+    typing.remove();
+    appendBotMsg(data.reply);
+  })
+  .catch(() => {
+    typing.remove();
+    appendBotMsg('Xin lỗi, không thể kết nối máy chủ. Vui lòng thử lại.');
+  });
+}
+</script>
+</body>
+</html>

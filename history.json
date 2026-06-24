@@ -1,0 +1,93 @@
+[
+  {
+    "class_name": "Cây khỏe mạnh",
+    "confidence": 91,
+    "severity": "An toàn",
+    "image_url": "/static/uploads/72a7654e-c29b-4070-9b8e-74c33df27d40.jpg",
+    "timestamp": "27/05/2026 09:53"
+  },
+  {
+    "class_name": "Cây khỏe mạnh",
+    "confidence": 99,
+    "severity": "An toàn",
+    "image_url": "/static/uploads/52b6d8c5-d8e2-4fd6-ba1f-dd853e5e6ef7.jpg",
+    "timestamp": "27/05/2026 09:50"
+  },
+  {
+    "class_name": "Sâu gai (Hispa)",
+    "confidence": 100,
+    "severity": "Cao",
+    "image_url": "/static/uploads/76c7af7a-6aa5-4431-a0f3-b86afdd2e1a7.jpg",
+    "timestamp": "27/05/2026 09:39"
+  },
+  {
+    "class_name": "Đạo ôn lá",
+    "confidence": 88,
+    "severity": "Cao",
+    "image_url": "/static/uploads/553660e5-4f3e-49c8-b4b1-60090f3de84b.jpg",
+    "timestamp": "16/05/2026 17:27"
+  },
+  {
+    "class_name": "Sâu gai (Hispa)",
+    "confidence": 100,
+    "severity": "Cao",
+    "image_url": "/static/uploads/586f04fa-502a-4052-9654-14f708e03289.jpg",
+    "timestamp": "16/05/2026 17:25"
+  },
+  {
+    "class_name": "Cây khỏe mạnh",
+    "confidence": 99,
+    "severity": "An toàn",
+    "image_url": "/static/uploads/43da58b7-d651-49d9-a3fc-3bbc83fa990a.jpg",
+    "timestamp": "13/05/2026 15:38"
+  },
+  {
+    "class_name": "Đạo ôn lá",
+    "confidence": 52,
+    "severity": "Cao",
+    "image_url": "/static/uploads/cd7a7133-e438-45d9-af34-1578c4353aaa.jpg",
+    "timestamp": "11/05/2026 19:12"
+  },
+  {
+    "class_name": "Sâu gai (Hispa)",
+    "confidence": 99,
+    "severity": "Cao",
+    "image_url": "/static/uploads/5411e2ee-6ea1-43c1-b9ac-cc6ea22ec036.jpg",
+    "timestamp": "11/05/2026 19:08"
+  },
+  {
+    "class_name": "Sâu gai (Hispa)",
+    "confidence": 100,
+    "severity": "Cao",
+    "image_url": "/static/uploads/865d0bf1-9fbe-4320-aab2-a46486bec2cf.jpg",
+    "timestamp": "11/05/2026 00:42"
+  },
+  {
+    "class_name": "Cháy bìa lá (Bạc lá)",
+    "confidence": 90,
+    "severity": "Cao",
+    "image_url": "/static/uploads/68136688-5e0d-43f5-891b-70672bd9dced.jpg",
+    "timestamp": "11/05/2026 00:42"
+  },
+  {
+    "class_name": "Đốm nâu",
+    "confidence": 32,
+    "severity": "Trung bình",
+    "image_url": "/static/uploads/30b02ea3-98da-44e0-b3ef-1786d09f9830.jpg",
+    "timestamp": "06/05/2026 20:43"
+  },
+  {
+    "class_name": "Đốm nâu",
+    "confidence": 31,
+    "severity": "Trung bình",
+    "image_url": "/static/uploads/074857c1-15bb-4f48-9930-2b4de7e3f104.jpg",
+    "timestamp": "06/05/2026 20:42"
+  },
+  {
+    "class_name": "Đốm nâu",
+    "confidence": 31,
+    "severity": "Trung bình",
+    "image_url": "/static/uploads/5f11d1ec-b11e-4285-ae93-80655c8df196.jpg",
+    "timestamp": "06/05/2026 20:40"
+  }
+]

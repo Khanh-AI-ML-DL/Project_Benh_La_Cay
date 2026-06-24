@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+.venv/
+venv/
+
+# Báo cáo
+*.docx
+*.pptx
+
+# Dataset
+Rice_Leaf_AUG.zip
+Rice_Leaf_AUG/
+rice_dataset_ok/
+
+# Model
+*.pth
+*.pt
+*.h5
